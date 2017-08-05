@@ -1,0 +1,38 @@
+# -*- coding: utf-8 -*-
+import scrapy, csv
+
+
+class RikunabiSpider(scrapy.Spider):
+    name = 'rikunabi'
+    allowed_domains = ['job.rikunabi.com']
+    def start_requests(self):
+        pageNo = input('pageNo -->')
+        url_default = "https://job.rikunabi.com/2018/search/company/result/?pn="
+        url_search = url_default + str(1)
+        print('----------------------------------------')
+        yield scrapy.Request(url_search,self.parse)
+
+    def parse(self, response):
+        urls_company = response.xpath('//div[@class="search-cassette-title"]/a/@href').extract()
+        for j in urls_company:
+            url_companypage = "https://job.rikunabi.com" + j
+            yield scrapy.Request(url_companypage,self.parse_company)
+        pass
+
+    def parse_company(self, response):
+        infoList =[]
+        deleteword = ['<div class="ts-h-company-sentence">','<br>','</div>']
+        infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/h1/a/text()').extract()[0].replace(',',''))
+        infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/div/text()').extract()[0].replace(',',''))
+        infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[3]/table/tr[1]/td/div[1]/text()').extract()[0].replace(',',''))
+        infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[3]/table/tr[1]/td/div[2]/text()').extract()[0].replace(',',''))
+        infoList.append(response.xpath('//*[@id="company-data04"]/div[@class="ts-h-company-sentence"]').extract()[0].replace(',','').replace(deleteword[0],'').replace(deleteword[1],'').replace(deleteword[2],''))
+
+        data = response.xpath('/html/body/div[1]/div[2]/div[2]/div/table/tr').extract()
+        for k in data
+            infoList.append(k.replace(',','').replace(deleteword[0],'').replace(deleteword[1],'').replace(deleteword[2],''))
+        file_opened = open('./list.csv','a')
+        csvWriter = csv.writer(file_opened)
+        csvWriter.writerow(infoList)
+        file_opened.close()
+        pass
