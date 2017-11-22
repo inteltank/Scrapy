@@ -15,8 +15,9 @@ class RikunabiSpider(scrapy.Spider):
 
 
     #クロールURL、ファイル保存先など場合によって変更したくなるものをクラス変数で定義
-    filename = './list03.csv'       #抽出されたリストの保存先。本ソースコードと同じ場所に保存される
-    pgGoal = 289                    #クローリングしたいカテゴリが何ページ目まであるのか設定する。
+    filename = './list.csv'       #抽出されたリストの保存先。本ソースコードと同じ場所に保存される
+    pgStart = 1
+    pgCount = 289              #クローリングしたいカテゴリが何ページ目まであるのか設定する。
     url_default = "https://job.rikunabi.com/2018/search/company/result/?"   #クローリングしたいカテゴリのURLを貼り付ける。このとき「?」が含まれているようにする
 
 
@@ -30,7 +31,7 @@ class RikunabiSpider(scrapy.Spider):
         file_opened.close()
 
         #設定したページまで、全ての企業一覧ページを見ていく
-        for i in range(201,self.pgGoal + 1):
+        for i in range(self.pgStart,self.pgCount + 1):
             url_search = self.url_default + 'pn=' + str(i)
             yield scrapy.Request(url_search,self.parse)
 
@@ -52,7 +53,11 @@ class RikunabiSpider(scrapy.Spider):
         deleteword = ['<div class="ts-h-company-sentence">','<br>','</div>']
 
         #企業名
-        infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/h1/a/text()').extract()[0].replace(',',''))
+        if len(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/h1/a/text()').extract()) == 0:
+            infoList.append("")
+        else:
+            infoList.append(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/h1/a/text()').extract()[0].replace(',',''))
+            
 
         #企業名のすぐ下に記載の文章。（ないこともあるため、ifで対応）
         if len(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[1]/div/text()')) > 0:
@@ -65,9 +70,15 @@ class RikunabiSpider(scrapy.Spider):
             infoList.append(l.replace(',',''))
         if len(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[3]/table/tr[1]/td/div/text()')) == 1:
             infoList.append('')
+        elif len(response.xpath('/html/body/div[1]/div[2]/div[1]/div[1]/div[3]/table/tr[1]/td/div/text()')) == 0:
+            infoList.append('')
+            infoList.append('')
 
         #連絡先
-        infoList.append(response.xpath('//*[@id="company-data04"]/div[@class="ts-h-company-sentence"]').extract()[0].replace(',','').replace(deleteword[0],'').replace(deleteword[1],'').replace(deleteword[2],''))
+        if len(response.xpath('//*[@id="company-data04"]/div[@class="ts-h-company-sentence"]').extract()) == 0:
+            infoList.append("")
+        else:
+            infoList.append(response.xpath('//*[@id="company-data04"]/div[@class="ts-h-company-sentence"]').extract()[0].replace(',','').replace(deleteword[0],'').replace(deleteword[1],'').replace(deleteword[2],''))
 
         #予めクラス変数「checklist」に記載した項目が企業ページ内にあれば、値をinfoListに収納。なければ空白。
         for l in self.checkList:
